@@ -1,0 +1,8 @@
+{
+  "name": "leaderboard",
+  "version-string": "1.0.0",
+  "dependencies": [
+    "gtest"
+  ],
+  "builtin-baseline": "ea49500a3353603af1190ca9a786a9015d638ea0"
+}
