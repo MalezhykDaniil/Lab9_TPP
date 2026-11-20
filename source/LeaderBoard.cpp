@@ -2,18 +2,28 @@
 
 #include <algorithm>
 #include <vector>
+#include <stdexcept>
 
-Leaderboard::Leaderboard(std::list<Race> const& races) : m_races(races)
-{}
+Leaderboard::Leaderboard(std::vector<std::shared_ptr<IRaceResult const>> races)
+    : m_races(std::move(races))
+{
+    for (const auto& race : m_races)
+    {
+        if (race == nullptr)
+        {
+            throw std::invalid_argument("Race cannot be null");
+        }
+    }
+}
 
 std::map<Driver, int, DriverComparator> Leaderboard::driverResults() const
 {
     std::map<Driver, int, DriverComparator> results;
-    for (Race const& race : m_races)
+    for (const std::shared_ptr<IRaceResult const>& race : m_races)
     {
-        for (const std::shared_ptr<Driver>& driver : race.getResults())
+        for (const std::shared_ptr<Driver>& driver : race->getResults())
         {
-            int points = race.getPoints(driver);
+            int points = race->getPoints(driver);
             
             auto result = results.try_emplace(*driver, points);
             auto& it = result.first;

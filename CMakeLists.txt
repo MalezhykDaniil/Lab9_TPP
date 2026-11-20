@@ -19,8 +19,8 @@ add_library(LeaderBoard
     source/Race.cpp
     source/LeaderBoard.cpp
     source/PointsSystem.cpp  
-    source/IPointsSystem.cpp 
-    source/AlternativePointsSystem.cpp )
+     
+    source/AlternativePointsSystem.cpp  "include/IRaceResult.h")
 
 target_include_directories(LeaderBoard PUBLIC include)
 set_property(TARGET LeaderBoard PROPERTY CXX_STANDARD 20)

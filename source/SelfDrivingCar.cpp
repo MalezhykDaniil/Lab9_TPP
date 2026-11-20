@@ -14,5 +14,5 @@ void SelfDrivingCar::setAlgorithmVersion(std::string algorithmVersion)
 }
 
 std::string SelfDrivingCar::displayName() const {
-    return "Self Driving Car - " + getCountry() + "(" + getAlgorithmVersion() + ")";
+    return "Self Driving Car - " + getAlgorithmVersion() + "(" + getCountry() + ")";
 }

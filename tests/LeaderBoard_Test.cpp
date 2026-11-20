@@ -3,13 +3,18 @@
 #include "PointsSystem.h"
 #include "SelfDrivingCar.h"
 #include "AlternativePointsSystem.h"
+#include "Race.h"
 
 TEST(Leaderboard, SingleDriverGets25Points)
 {
     auto driver = std::make_shared<Driver>("Alice", "USA");
 	auto pointsSystem = std::make_shared<PointsSystem>();
 
-    Race race("Race 1", { driver }, pointsSystem);
+    auto race = std::make_shared<Race>(
+        "Race 1",
+        std::list<std::shared_ptr<Driver>>{ driver },
+        pointsSystem
+    );
     Leaderboard leaderboard({ race });
 
     auto results = leaderboard.driverResults();
@@ -24,7 +29,12 @@ TEST(Leaderboard, DistributesPointsByPosition)
     auto charlie = std::make_shared<Driver>("Charlie", "Germany");
     auto pointsSystem = std::make_shared<PointsSystem>();
 
-    Race race("Race 1", { alice, bob, charlie }, pointsSystem);
+    auto race = std::make_shared<Race>(
+        "Race 1",
+        std::list<std::shared_ptr<Driver>>{ alice, bob, charlie },
+        pointsSystem
+    );
+
     Leaderboard leaderboard({ race });
 
     auto results = leaderboard.driverResults();
@@ -40,10 +50,18 @@ TEST(Leaderboard, AccumulatesPointsAcrossRaces)
     auto bob = std::make_shared<Driver>("Bob", "UK");
     auto pointsSystem = std::make_shared<PointsSystem>();
 
-    Race race1("Race 1", { alice, bob }, pointsSystem);
-    Race race2("Race 2", { alice, bob }, pointsSystem);
+    auto race = std::make_shared<Race>(
+        "Race 1",
+        std::list<std::shared_ptr<Driver>>{ alice, bob},
+        pointsSystem
+    );
+    auto race2 = std::make_shared<Race>(
+        "Race 2",
+        std::list<std::shared_ptr<Driver>>{ alice, bob },
+        pointsSystem
+    );
 
-    Leaderboard leaderboard({ race1, race2 });
+    Leaderboard leaderboard({ race, race2 });
 
     auto results = leaderboard.driverResults();
 
@@ -58,7 +76,11 @@ TEST(Leaderboard, RanksDriversByPoints)
     auto charlie = std::make_shared<Driver>("Charlie", "Germany");
     auto pointsSystem = std::make_shared<PointsSystem>();
 
-    Race race("Race 1", { alice, bob, charlie }, pointsSystem);
+    auto race = std::make_shared<Race>(
+        "Race 1",
+        std::list<std::shared_ptr<Driver>>{ alice, bob, charlie },
+        pointsSystem
+    );
     Leaderboard leaderboard({ race });
 
     auto rankings = leaderboard.driverRankings();
@@ -111,13 +133,59 @@ TEST(AlternativePointsSystem, InvalidPosition)
 
 TEST(Race, SelfDrivingCars)
 {
-    auto selfDrivingCar = std::make_shared<SelfDrivingCar>("v1.0", "Company");
+    auto selfDrivingCar = std::make_shared<SelfDrivingCar>("Company", "v1.0");
     auto pointsSystem = std::make_shared<PointsSystem>();
 
 	Race race("Race 1", { selfDrivingCar }, pointsSystem);
 
-	EXPECT_EQ(race.getDriverName(selfDrivingCar), "Self Driving Car - Company(v1.0)");
-	EXPECT_EQ(race.position(selfDrivingCar), 1);
+    EXPECT_EQ(race.getDriverName(selfDrivingCar), "Self Driving Car - Company(v1.0)");
+    EXPECT_EQ(race.position(selfDrivingCar), 1);
+}
+
+TEST(Leaderboard, MixedDriversAndSelfDrivingCarsAcrossRaces)
+{
+    auto alice = std::make_shared<Driver>("Alice", "USA");
+    auto botAlpha = std::make_shared<SelfDrivingCar>("v2.1", "AutoLab");
+    auto bob = std::make_shared<Driver>("Bob", "UK");
+    auto botBeta = std::make_shared<SelfDrivingCar>("v1.4", "DriveX");
+    auto pointsSystem = std::make_shared<PointsSystem>();
+
+    auto race1 = std::make_shared<Race>(
+        "Race 1", 
+        std::list<std::shared_ptr<Driver>>{ botAlpha, alice, bob, botBeta }, 
+        pointsSystem);
+    auto race2 = std::make_shared<Race>("Race 2", 
+        std::list<std::shared_ptr<Driver>>{ alice, botAlpha, botBeta, bob }, 
+        pointsSystem);
+
+    Leaderboard leaderboard({ race1, race2 });
+    auto rankings = leaderboard.driverRankings();
+
+    // botAlpha: 25 + 18 = 43; alice: 18 + 25 = 43; botBeta: 15; bob: 15
+    ASSERT_EQ(rankings.size(), 4u);
+    EXPECT_EQ(rankings[0].second, 43);
+    EXPECT_EQ(rankings[1].second, 43);
+    EXPECT_EQ(rankings[2].second, 15);
+    EXPECT_EQ(rankings[3].second, 15);
+}
+
+TEST(Leaderboard, SelfDrivingCarFourthPlaceGetsZeroPoints)
+{
+    auto d1 = std::make_shared<Driver>("D1", "UA");
+    auto d2 = std::make_shared<Driver>("D2", "PL");
+    auto d3 = std::make_shared<Driver>("D3", "DE");
+    auto car = std::make_shared<SelfDrivingCar>("v0.9", "OpenPilot");
+    auto pointsSystem = std::make_shared<PointsSystem>();
+
+    auto race = std::make_shared<Race>(
+        "Race 1",
+        std::list<std::shared_ptr<Driver>>{ d1, d2, d3, car },
+        pointsSystem
+    );
+    Leaderboard leaderboard({ race });
+
+    auto results = leaderboard.driverResults();
+    EXPECT_EQ(results.at(*car), 0);
 }
 
 TEST(Race, Null)
@@ -165,7 +233,11 @@ TEST(Race, AlternativePointSystem)
     auto charlie = std::make_shared<Driver>("Charlie", "Germany");
     auto alternativePointsSystem = std::make_shared<AlternativePointsSystem>();
     
-    Race race("Race 1", { alice, bob, charlie }, alternativePointsSystem);
+    auto race = std::make_shared<Race>(
+        "Race 1",
+        std::list<std::shared_ptr<Driver>>{ alice, bob, charlie },
+        alternativePointsSystem
+    );
     Leaderboard leaderboard({ race });
     
     auto results = leaderboard.driverResults();
@@ -213,8 +285,16 @@ TEST(Race, SamePoints)
     auto bob = std::make_shared<Driver>("Bob", "UK");
     auto pointsSystem = std::make_shared<PointsSystem>();
     
-    Race race("Race 1", { alice, bob }, pointsSystem);
-	Race race2("Race 2", { bob, alice }, pointsSystem);
+    auto race = std::make_shared<Race>(
+        "Race 1",
+        std::list<std::shared_ptr<Driver>>{ alice, bob },
+        pointsSystem
+    );
+    auto race2 = std::make_shared<Race>(
+        "Race 2",
+        std::list<std::shared_ptr<Driver>>{ bob, alice },
+        pointsSystem
+    );
     Leaderboard leaderboard({ race, race2 });
     
     auto rankings = leaderboard.driverRankings();
@@ -231,7 +311,11 @@ TEST(Leaderboard, SameNamesDifferentCountries)
     auto aliceUK = std::make_shared<Driver>("Alice", "UK");
     auto pointsSystem = std::make_shared<PointsSystem>();
 
-    Race race("Race 1", { aliceUSA, aliceUK }, pointsSystem);
+    auto race = std::make_shared<Race>(
+        "Race 1",
+        std::list<std::shared_ptr<Driver>>{ aliceUSA, aliceUK },
+        pointsSystem
+    );
     Leaderboard leaderboard({ race });
 
     auto results = leaderboard.driverResults();
@@ -259,7 +343,11 @@ TEST(Leaderboard, CopyConstructor)
     auto alice = std::make_shared<Driver>("Alice", "USA");
     auto pointsSystem = std::make_shared<PointsSystem>();
 
-    Race race("Race 1", { alice }, pointsSystem);
+    auto race = std::make_shared<Race>(
+        "Race 1",
+        std::list<std::shared_ptr<Driver>>{ alice },
+        pointsSystem
+    );
     Leaderboard original({ race });
 
     Leaderboard copy(original);
@@ -289,9 +377,14 @@ TEST(Leaderboard, WorksAfterOriginalRaceDestroyed)
     std::unique_ptr<Leaderboard> leaderboard;
 
     {
-        Race race("Race 1", { alice }, pointsSystem);
+        auto race = std::make_shared<Race>(
+            "Race 1",
+            std::list<std::shared_ptr<Driver>>{ alice },
+            pointsSystem
+        );
+
         leaderboard = std::make_unique<Leaderboard>(
-            std::list<Race>{ race }
+            std::vector<std::shared_ptr<IRaceResult const>>{ race }
         );
     }
 

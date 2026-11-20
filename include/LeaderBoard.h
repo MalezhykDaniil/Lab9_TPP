@@ -1,17 +1,16 @@
 #pragma once
 
-#include <list>
 #include <map>
 #include <vector>
 
-#include "Race.h"
+#include "IRaceResult.h"
 
 class Leaderboard
 {
-    std::list<Race> m_races;
+    std::vector<std::shared_ptr<IRaceResult const>> m_races;
 
 public:
-    Leaderboard(std::list<Race> const& races);
+    explicit Leaderboard(std::vector<std::shared_ptr<IRaceResult const>> races);
 
     std::map<Driver, int, DriverComparator> driverResults() const;
 
